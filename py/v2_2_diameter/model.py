@@ -6,7 +6,7 @@ from torch.functional import Tensor
 
 INP_TENSOR = torch.FloatTensor([0])
 EXPECTED_OUT = torch.FloatTensor([float('-inf')])[0]
-LR = 7e-3
+LR = 1e-3
 
 
 def get_return_numerator(a, b, p, m):
@@ -41,7 +41,6 @@ class Splitter(torch.nn.Module):
         # Square the output because the input weights are constrained to a L2 norm, so squaring the outputs
         # mimics and L1 constraint when the input (x) is 1, which is what we are looking for
         o = torch.square(o)
-        print(o, x)
         return o * x
 
 
@@ -60,7 +59,8 @@ class OutputOptimizer(torch.nn.Module):
     def __init__(self, graph):
         super(OutputOptimizer, self).__init__()
         # self.return_fn = return_fn
-        self.splitters = torch.nn.ModuleList(map(lambda edges: Splitter(len(edges)), graph))
+        self.splitters = torch.nn.ModuleList(
+            map(lambda edges: Splitter(len(edges)), graph))
 
     # x is the initial set of inputs
     def forward(self, x, graph):
@@ -71,7 +71,7 @@ class OutputOptimizer(torch.nn.Module):
         # Append the initial value to the first inputs from the graph
         stack.append((x, 0))
 
-        total_accum = torch.FloatTensor(0)
+        total_accum = torch.FloatTensor([0])
         # THIS IS FULLY SEQUENTIAL FOR NOW
         while len(stack) != 0:
             # TODO: this is wrong!!
@@ -87,20 +87,19 @@ class OutputOptimizer(torch.nn.Module):
                 a.append(_a)
                 b.append(_b)
                 p.append(_p)
-            next_vals = get_return_fn(torch.FloatTensor(a), torch.FloatTensor(b), torch.FloatTensor(p))(m)
-            print(next_vals, a, b, p)
+            next_vals = get_return_fn(torch.FloatTensor(
+                a), torch.FloatTensor(b), torch.FloatTensor(p))(m)
             for i, edge_out in enumerate(edges_out):
                 (next_i, _) = edge_out
                 if next_i != 1:
                     stack.append((next_vals[i], next_i))
                 else:
-                    # print (next_vals[i])
-                    total_accum = total_accum + next_vals[i]
-
-        o = self.return_fn(m)
+                    # print("BBBB", next_vals[i])
+                    total_accum = torch.add(total_accum, next_vals[i])
+        # o = self.return_fn(m)
         # Return * -1 because gradient descent optimizes for minimum
-        o = torch.sum(o) * -1
-        return o
+        # o = torch.sum(o) * -1
+        return total_accum * -1
 
 
 def find_optimum_splits(m, G):
@@ -110,20 +109,23 @@ def find_optimum_splits(m, G):
     optimizer = torch.optim.SGD(model.parameters(), lr=LR)
     INP_TENSOR = m
     start_output = model(INP_TENSOR, G) * -1
+    print("AAA", start_output)
 
     for t in range(10000):
-        y_pred = model(INP_TENSOR)
+        y_pred = model(INP_TENSOR, G)
         loss = y_pred - EXPECTED_OUT
         # loss.requires_grad = True
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-    end_output = model(INP_TENSOR) * -1
-    pool_weights = torch.square(model.splitter.linear1_constrained.bias)
+    end_output = model(INP_TENSOR, G) * -1
+    # TODO: the hell how you get this out?
+    pool_weights = map(lambda s: torch.square(
+        s.linear1_constrained.bias).tolist(), list(model.splitters))
     # print(f"Initial Output = {start_output}, End Output = {end_output}, Pool Weights = {pool_weights}")
     print("{" + '"start_output": {}, "end_output": {}, "pool_weights": {}'.format(
-        start_output, end_output, pool_weights.tolist()) + "}")
+        start_output, end_output, list(pool_weights)) + "}")
 
     return (
         start_output, end_output, pool_weights
@@ -158,5 +160,4 @@ if __name__ == "__main__":
         p = [0.03, 0.09, 0.03]
         for i in range(5):
             m = [10 ** i] * 2
-            print(m)
             run(m)
