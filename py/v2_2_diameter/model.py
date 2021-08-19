@@ -1,4 +1,5 @@
 import torch
+import copy
 import json
 import sys
 import geotorch
@@ -6,7 +7,7 @@ from torch.functional import Tensor
 
 INP_TENSOR = torch.FloatTensor([0])
 EXPECTED_OUT = torch.FloatTensor([float('-inf')])[0]
-LR = 1e-3
+LR = 5e-4
 
 
 def get_return_numerator(a, b, p, m):
@@ -64,9 +65,10 @@ class OutputOptimizer(torch.nn.Module):
 
     # x is the initial set of inputs
     def forward(self, x, graph):
+        # TODO: well this is slow
+        graph = copy.deepcopy(graph)
         # (_, (aInit, bInit, pInit) = graph[0]
         # TODO: will need a lot of splitters
-
         stack = []
         # Append the initial value to the first inputs from the graph
         stack.append((x, 0))
@@ -89,8 +91,18 @@ class OutputOptimizer(torch.nn.Module):
                 p.append(_p)
             next_vals = get_return_fn(torch.FloatTensor(
                 a), torch.FloatTensor(b), torch.FloatTensor(p))(m)
+            # May not be the perfect output because you DFS and subtract from next_vals, bu idk
             for i, edge_out in enumerate(edges_out):
-                (next_i, _) = edge_out
+                (next_i, (_a, _b, _p)) = edge_out
+                # Make sure to update the a and b values of the pool because they changed
+                new_a = _a + m[i]
+                new_b = _b - next_vals[i]
+
+                assert new_a >= 0
+                assert new_b >= 0
+
+                graph[node_index][i] = (next_i, (new_a, new_b, _p))
+
                 if next_i != 1:
                     stack.append((next_vals[i], next_i))
                 else:
@@ -109,19 +121,23 @@ def find_optimum_splits(m, G):
     optimizer = torch.optim.SGD(model.parameters(), lr=LR)
     INP_TENSOR = m
     start_output = model(INP_TENSOR, G) * -1
+    (_, (a, b, p)) = G[0][1]
+    print(a, b, p, m)
+    print("Out from just using the first lp", get_return_fn(
+        torch.FloatTensor([a]), torch.FloatTensor([b]), torch.FloatTensor([p]))(m))
     print("AAA", start_output)
 
     for t in range(10000):
-        y_pred = model(INP_TENSOR, G)
-        loss = y_pred - EXPECTED_OUT
+        y_pred=model(INP_TENSOR, G)
+        loss=y_pred - EXPECTED_OUT
         # loss.requires_grad = True
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-    end_output = model(INP_TENSOR, G) * -1
+    end_output=model(INP_TENSOR, G) * -1
     # TODO: the hell how you get this out?
-    pool_weights = map(lambda s: torch.square(
+    pool_weights=map(lambda s: torch.square(
         s.linear1_constrained.bias).tolist(), list(model.splitters))
     # print(f"Initial Output = {start_output}, End Output = {end_output}, Pool Weights = {pool_weights}")
     print("{" + '"start_output": {}, "end_output": {}, "pool_weights": {}'.format(
@@ -137,7 +153,7 @@ def run(m):
     # a = torch.FloatTensor(list(map(int, a)))
     # b = torch.FloatTensor(list(map(int, b)))
     # p = torch.FloatTensor(p)
-    m = torch.FloatTensor(m)
+    m=torch.FloatTensor(m)
     find_optimum_splits(
         m, [[(2, (100000, 100000, 0.03)), (1, (1000, 1000, 0.03))], [], [(1, (1000, 1000, 0.01)), (1, (100000, 100000, 0.03))]])  # a in, b out.
     # Graph is a -> b, a -> c -> b, a ->c -> b
@@ -147,17 +163,17 @@ if __name__ == "__main__":
     if len(sys.argv) >= 5:
         # assert len(sys.argv) >= 5
         # print(sys.argv[1])
-        a = json.loads(sys.argv[1])
-        b = json.loads(sys.argv[2])
-        p = json.loads(sys.argv[3])
-        m = json.loads(sys.argv[4])
+        a=json.loads(sys.argv[1])
+        b=json.loads(sys.argv[2])
+        p=json.loads(sys.argv[3])
+        m=json.loads(sys.argv[4])
         run(a, b, p, m)
         sys.stdout.flush()
     # Test case
     else:
-        a = [1000000000, 1000000, 100]
-        b = [1000000000, 1000000, 100]
-        p = [0.03, 0.09, 0.03]
+        a=[1000000000, 1000000, 100]
+        b=[1000000000, 1000000, 100]
+        p=[0.03, 0.09, 0.03]
         for i in range(5):
-            m = [10 ** i] * 2
+            m=[10 ** i] * 2
             run(m)
