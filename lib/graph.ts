@@ -1,23 +1,30 @@
 import { AccountId } from "@malloc/sdk";
 import assert from "assert";
 import { config } from "./config";
-import { findOpt } from "./get-optimized";
-import { getPoolsTouchingInOrOut, poolHasToken } from "./get-pools";
+import { findOptV2 } from "./get-optimized";
+import {
+  getAllTokensUsed,
+  getPoolsTouchingInOrOut,
+  poolHasToken,
+} from "./get-pools";
 import {
   DirectedGraph,
   GraphEdge,
   GraphNode,
 } from "./interfaces/graph-interfaces";
-import { PoolInfo } from "./interfaces/ref-interfaces";
+import { PoolInfo, PoolInfoFloats } from "./interfaces/ref-interfaces";
 import { near } from "./near";
+import { swapArr } from "./utils";
 
 interface PoolInfoWithIndex extends PoolInfo {
   index: number;
 }
 
+const getPoolId = (edge: GraphEdge) => edge[1][3];
+
 const tokenToGraphNode = (
   current_token: AccountId,
-  pools: PoolInfo[],
+  pools: PoolInfoFloats[],
   tokens: AccountId[]
 ): GraphNode => {
   const poolsWithTokenIn = pools.filter(poolHasToken(current_token));
@@ -42,17 +49,56 @@ const tokenToGraphNode = (
       });
     })
     .flat();
-  return edges;
+
+  const dedupSamePools = (edges: GraphEdge[]) =>
+    edges.filter(
+      (edge, i) =>
+        i ===
+        edges.findIndex(
+          (checkedEdge) => getPoolId(checkedEdge) === getPoolId(edge)
+        )
+    );
+  return dedupSamePools(edges);
 };
 
-// TODO: TO UTILS
-const dedup = <T>(arr: T[]): T[] => Array.from(new Set(arr));
+// Removes all edges which are not coming from the 0th node and do not go to the 0th node
+// It then removes all nodes w/o outgoing edges from the 0th node
+// It also sets the outgoing edges from the out token (1st index) to []
+const removeEdgesNotTouchingInOrOut = (g: GraphNode[]): GraphNode[] => {
+  const isEdgeValid = (e: GraphEdge, nodeIndex: number) =>
+    e[0] === 1 || nodeIndex === 0;
+  const gFiltered = g.map((edges: GraphEdge[], i) =>
+    edges.filter(isEdgeValid, i)
+  );
+  return gFiltered;
+};
 
-const swapArr = <T>(arr: T[], i: number, j: number): T[] => {
-  const tmp = arr[i];
-  arr[i] = arr[j];
-  arr[j] = tmp;
-  return arr;
+const removeEmptyNodes = (g: GraphNode[]): GraphNode[] => {
+  // Get a list of indexes which have no outgoing edges, except for the 1st node as that can have no outgoing edges
+  const emptyNodes: number[] = g
+    .map((edges, i) => (edges.length === 0 ? i : null))
+    .filter((elem) => elem !== null && elem !== 1) as number[];
+
+  // Prune the empty nodes from the start's outgoing nodes
+  const newFirstNode = g[0].filter(
+    (edge: GraphEdge) => !emptyNodes.includes(edge[0])
+  );
+  g[0] = newFirstNode;
+
+  emptyNodes.forEach((nodeIdx) => g.splice(nodeIdx));
+  if (g[0].length === 0)
+    throw "Looks like there is no match pair between the given input and output token";
+  return g;
+};
+
+const removeOutputOutgoingEdges = (g: GraphNode[]): GraphNode[] => {
+  g[1] = [];
+  return g;
+};
+
+const removeEdgesBackToInToken = (g: GraphNode[]): GraphNode[] => {
+  const gFiltered = g.map((edges) => edges.filter((edge) => edge[0] !== 0));
+  return gFiltered;
 };
 
 /**
@@ -82,43 +128,34 @@ const rearrangeTokenList = (
  * This graph is relatively straight forward to build if the diameter is limited to 2
  *
  */
-const buildDirectedGraph = (
-  pools: PoolInfo[],
+export const buildDirectedGraph = (
+  pools: PoolInfoFloats[],
   tokenIn: AccountId,
   tokenOut: AccountId
 ): DirectedGraph => {
   const poolsWithIdx = pools.map((pool, i) => {
     return { ...pool, index: i };
   });
-  const allTokensBadOrder = dedup(
-    pools.map((pool) => pool.token_account_ids).flat()
-  );
+  const allTokensBadOrder = getAllTokensUsed(pools);
   const allTokens = rearrangeTokenList(allTokensBadOrder, tokenIn, tokenOut);
 
   const nodes = allTokens.map((tok) =>
     tokenToGraphNode(tok, poolsWithIdx, allTokens)
   );
-  console.log(JSON.stringify(nodes), allTokens);
+  const filteredNodes = removeEmptyNodes(
+    removeOutputOutgoingEdges(
+      removeEdgesBackToInToken(removeEdgesNotTouchingInOrOut(nodes))
+    )
+  );
   return {
-    graph: nodes,
-    // metadata: {
-    // }
+    graph: filteredNodes,
   };
-  // const allTokens = getAllTokensUsed(pools);
-  // const poolsWithInputToken = pools.filter(poolHasToken(tokenIn));
-  // return {
-  //   graph: [],
-  //   metadata: {
-  //     indexToToken: [],
-  //   },
-  // };
 };
 
 near.account(config.near.PROXY_ACCOUNT).then(async (account) => {
   const tokenIn = "wrap.testnet";
-  const tokenOut = "ndai.ft-fin.testnet";
+  const tokenOut = "banana.ft-fin.testnet";
   const pools = await getPoolsTouchingInOrOut(account, tokenIn, tokenOut);
-  console.log(pools);
-  buildDirectedGraph(pools, tokenIn, tokenOut);
-  // await findOpt(tokenIn, tokenOut, pools, 10);
+  const G = buildDirectedGraph(pools, tokenIn, tokenOut);
+  await findOptV2(G, 1000.222);
 });

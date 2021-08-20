@@ -3,7 +3,7 @@ import { AccountId } from "@malloc/sdk"
 /**
  *  GraphEdges is equivalent to [nextIndexInGraph, [a, b, p, pool info id, index of token in in pool, index of token out in pool]]
  */
-export type GraphEdge = [number, [string, string, number, number, number, number]]
+export type GraphEdge = [number, [number, number, number, number, number, number]]
 export type GraphNode = GraphEdge[]
 
 /**
