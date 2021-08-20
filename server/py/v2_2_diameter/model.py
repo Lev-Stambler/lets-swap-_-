@@ -8,8 +8,8 @@ from torch.functional import Tensor
 INP_TENSOR = torch.FloatTensor([0])
 EXPECTED_OUT = torch.FloatTensor([float('-inf')])[0]
 # It seems like LR should be dependent on the size of the input m
-LR_1 = 5e-1
-LR_2 = 5e-2
+LR_1 = 5e-2
+LR_2 = 1e-3
 
 # Assume a test is running if no cli args are passed in for values
 
@@ -128,7 +128,7 @@ class OutputOptimizer(torch.nn.Module):
 
 
 def find_optimum_splits(m, G):
-    ITERATIONS_1, ITERATIONS_2 = 2_000, 8_000
+    ITERATIONS_1, ITERATIONS_2 = 2_000, 15_000
 
     model = OutputOptimizer(G)
 

@@ -1,0 +1,20 @@
+[package]
+name = "rust"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+optimization = "0.2.0"
+serde = { version = "1.0.127", features = ["derive"] }
+wasm-bindgen = "0.2.76"
+
+[dependencies.web-sys]
+version = "0.3.53"
+features = [
+  "console",
+]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
