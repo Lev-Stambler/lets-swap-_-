@@ -7978,6 +7978,13 @@ svelte-check@^1.2.6:
     svelte-preprocess "^4.0.0"
     typescript "*"
 
+svelte-cli@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/svelte-cli/-/svelte-cli-3.0.0.tgz#4d69872a3f291434289868b8f8841e9b05181b2a"
+  integrity sha512-gVoro8uGfE2G3kigs8fQt6XyFRMxYRiKlMs6wgHqhNMkE0MQu47SxQmSc1lTzPq9XY/TJHLV3dbTkyZ9PLXy1A==
+  dependencies:
+    svelte "^2.1.0"
+
 svelte-dev-helper@^1.1.9:
   version "1.1.9"
   resolved "https://registry.yarnpkg.com/svelte-dev-helper/-/svelte-dev-helper-1.1.9.tgz#7d187db5c6cdbbd64d75a32f91b8998bde3273c3"
@@ -8016,6 +8023,11 @@ svelte-preprocess@^4.0.0, svelte-preprocess@^4.6.9:
     "@types/sass" "^1.16.0"
     detect-indent "^6.0.0"
     strip-indent "^3.0.0"
+
+svelte@^2.1.0:
+  version "2.16.1"
+  resolved "https://registry.yarnpkg.com/svelte/-/svelte-2.16.1.tgz#559a68452029e72280311ccc8dfd2ff10d0a5f18"
+  integrity sha512-TpXdfukSkmWkMnH6PPVm7FRW8SSFcTyqBiP+6VN8rtZJ7Lp1Xbf/e3oz73eQBxF0UPZw1aAn1b91lX2XTeD3zg==
 
 svelte@^3.35.0, svelte@^3.42.2:
   version "3.42.2"

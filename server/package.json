@@ -25,10 +25,11 @@
     "url": "https://github.com/Lev-Stambler/malloc-near-2/issues"
   },
   "dependencies": {
-    "@malloc/sdk": "../malloc/malloc-near-2/ts-packages/malloc-client/",
+    "@malloc/sdk": "../../malloc/malloc-near-2/ts-packages/malloc-client/",
     "bn.js": "^5.2.0",
     "body-parser": "^1.19.0",
     "borsh": "^0.4.0",
+    "cors": "^2.8.5",
     "express": "^4.17.1",
     "js-sha256": "^0.9.0",
     "near": "^0.2.2",
@@ -42,6 +43,7 @@
     "@babel/core": "~7.14.0",
     "@babel/preset-env": "~7.14.0",
     "@babel/preset-typescript": "^7.14.5",
+    "@types/cors": "^2.8.12",
     "@types/express": "^4.17.13",
     "@types/jest": "^26.0.23",
     "@types/node": "^15.12.5",

@@ -4,14 +4,13 @@
   import BN from "bn.js";
   import { stringify } from "postcss";
   import Login from "./components/Login.svelte";
-  import { initNearStore, nearStore } from "./stores/near-store";
   import getConfig, { baseUrl } from "./utils/config";
 
-  let inputToken: string = null;
-  let outputToken: string = null;
+  let inputToken: string = "banana.ft-fin.testnet";
+  let outputToken: string = "wrap.testnet";
   let amount: string = null;
-  let loading = false
-  let swapInfo
+  let loading = false;
+  let swapInfo;
 
   const nearConfig = getConfig("development");
 
@@ -24,7 +23,6 @@
     //   )
     // );
     // await initNearStore(near);
-
     // Initializing Wallet based Account. It can work with NEAR testnet wallet that
     // is hosted at https://wallet.testnet.near.org
   }
@@ -37,7 +35,7 @@
 
   async function getTokenSwaps(e: Event) {
     e.preventDefault();
-    loading = true
+    loading = true;
     // TODO: config
     let amountParsed: number;
     try {
@@ -46,24 +44,30 @@
       alert(`Failed to parse amount value ${amount}`);
       return;
     }
-    const ret = await fetch(
-      getTokenSwapUrl(inputToken, outputToken, amountParsed)
-    );
-    swapInfo = await ret.json();
-    loading = false
+    try {
+      const ret = await fetch(
+        getTokenSwapUrl(inputToken, outputToken, amountParsed)
+      );
+      swapInfo = await ret.json();
+    } catch (e) {
+      alert(`Failed to get a result with error ${e}`);
+    }
+
+    loading = false;
   }
 
   function logout() {
-    $nearStore.walletConnection.signOut();
+    // $nearStore.walletConnection.signOut();
     window.location.reload();
   }
 </script>
 
 <main>
   {#await init()}
-    loading...
+    Loading.
   {:then value}
-    {#if $nearStore?.walletConnection.isSignedIn()}
+    <!-- {#if $nearStore?.walletConnection.isSignedIn()} -->
+    {#if true}
       <!-- TODO: navbar -->
       <button class="log-out" on:click={logout}>Logout</button>
       <form action="" on:submit={getTokenSwaps}>
@@ -73,11 +77,12 @@
         <button type="sumbit">Submit</button>
       </form>
       {#if loading}
-        Loading...
+        Loading... This may take a sec cause this code is very slow right now.
+        (Unoptimized optimization (; )
       {/if}
       {#if swapInfo}
         <h1>Result</h1>
-        <p>{JSON.stringify(swapInfo)}</p>
+        <p>{JSON.stringify(swapInfo, null, 3)}</p>
       {/if}
     {:else}
       <Login />

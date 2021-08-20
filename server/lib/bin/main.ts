@@ -5,11 +5,14 @@ import { config } from "../config";
 import { near } from "../service/near";
 import { getPoolsTouchingInOrOut } from "../service/get-pools";
 import { buildDirectedGraph } from "../service/graph";
+import cors from 'cors'
 import { findOptV2 } from "../service/get-optimized";
 
 const app = express();
 const port = 3000; // default port to listen
 
+// TODO: whitelist
+app.use(cors())
 app.use(bodyParser.json());
 
 // define a route handler for the default home page
