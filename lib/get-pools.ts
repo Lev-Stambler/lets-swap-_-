@@ -57,24 +57,34 @@ export const getAllPools = async (
   );
 
   const allTokens = getAllTokensUsed(pools);
+
+  // TODO: this can be made more efficient via some lazy loading system
   const allTokenInfos = await Promise.all(
     allTokens.map((token) => ftGetTokenMetadata(account, token))
   );
 
-  const tokensMap = allTokens.reduce((mapping: {[tok: string]: TokenMetadata}, tok, i) => {
-    mapping[tok] = allTokenInfos[i]
-    return mapping
-  }, {})
+  const tokensMap = allTokens.reduce(
+    (mapping: { [tok: string]: TokenMetadata }, tok, i) => {
+      mapping[tok] = allTokenInfos[i];
+      return mapping;
+    },
+    {}
+  );
 
-  return pools.map((pool, i) => {
-    return poolToFloats({
-      ...pool,
-      id: i,
-    }, tokensMap);
+  const poolsMapped = pools.map((pool, i) => {
+    return poolToFloats(
+      {
+        ...pool,
+        id: i,
+      },
+      tokensMap
+    );
   });
+  return poolsMapped;
 };
 
-export const poolHasToken = (token: AccountId) => (pool: PoolInfo | PoolInfoFloats) => {
-  const idx = pool.token_account_ids.indexOf(token);
-  return idx !== -1 && pool.amounts[idx].toString() !== "0";
-};
+export const poolHasToken =
+  (token: AccountId) => (pool: PoolInfo | PoolInfoFloats) => {
+    const idx = pool.token_account_ids.indexOf(token);
+    return idx !== -1 && pool.amounts[idx].toString() !== "0";
+  };

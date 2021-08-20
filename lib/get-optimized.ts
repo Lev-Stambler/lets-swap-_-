@@ -33,9 +33,8 @@ export const findOptV2 = async (
       resolve(data.toString());
     });
   });
-  console.log("Return from the optimizer", ret);
   const retParse: OptRet = JSON.parse(ret) as OptRet;
-  console.log(retParse);
+  console.log("Return from the optimizer", retParse);
 };
 
 export const findOptV1 = async (

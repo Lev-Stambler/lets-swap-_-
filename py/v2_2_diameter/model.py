@@ -8,8 +8,8 @@ from torch.functional import Tensor
 INP_TENSOR = torch.FloatTensor([0])
 EXPECTED_OUT = torch.FloatTensor([float('-inf')])[0]
 # It seems like LR should be dependent on the size of the input m
-LR_1 = 1e-2
-LR_2 = 1e-3
+LR_1 = 2e-2
+LR_2 = 4e-3
 
 # Assume a test is running if no cli args are passed in for values
 
@@ -136,10 +136,16 @@ def find_optimum_splits(m, G):
 
     INP_TENSOR = m
     start_output = model(INP_TENSOR, G) * -1
-    (_, (a, b, p, _, _, _)) = G[0][0]
+    # TODO: have an actual fn for getting this
+    (node_to, (a, b, p, _, _, _)) = G[0][0]
     print_local(a, b, p, m)
-    one_lp_output = get_return_fn(
-        torch.FloatTensor([a]), torch.FloatTensor([b]), torch.FloatTensor([p]))(m)[0]
+
+    one_lp_output = -1
+
+    if node_to == 1:
+        one_lp_output = get_return_fn(
+            torch.FloatTensor([a]), torch.FloatTensor([b]), torch.FloatTensor([p]))(m)[0]
+
     print_local("Out from just using the first lp", one_lp_output)
     print_local("Starting output: ", start_output)
 
@@ -167,8 +173,8 @@ def find_optimum_splits(m, G):
     pool_weights = map(lambda s: torch.square(
         s.linear1_constrained.bias).tolist(), list(model.splitters))
     # print_local(f"Initial Output = {start_output}, End Output = {end_output}, Pool Weights = {pool_weights}")
-    print("{" + '"one_pool_output": {} "start_output": {}, "end_output": {}, "pool_weights": {}'.format(one_lp_output,
-        start_output[0], end_output[0], list(pool_weights)) + "}")
+    print("{" + '"one_pool_output": {}, "start_output": {}, "end_output": {}, "pool_weights": {}'.format(one_lp_output,
+                                                                                                         start_output[0], end_output[0], list(pool_weights)) + "}")
 
     return (
         start_output, end_output, pool_weights

@@ -68,11 +68,12 @@ const removeEdgesNotTouchingInOrOut = (g: GraphNode[]): GraphNode[] => {
   const isEdgeValid = (e: GraphEdge, nodeIndex: number) =>
     e[0] === 1 || nodeIndex === 0;
   const gFiltered = g.map((edges: GraphEdge[], i) =>
-    edges.filter(isEdgeValid, i)
+    edges.filter((edge) => isEdgeValid(edge, i))
   );
   return gFiltered;
 };
 
+// Remove any empty nodes from outgoing edges
 const removeEmptyNodes = (g: GraphNode[]): GraphNode[] => {
   // Get a list of indexes which have no outgoing edges, except for the 1st node as that can have no outgoing edges
   const emptyNodes: number[] = g
@@ -85,7 +86,6 @@ const removeEmptyNodes = (g: GraphNode[]): GraphNode[] => {
   );
   g[0] = newFirstNode;
 
-  emptyNodes.forEach((nodeIdx) => g.splice(nodeIdx));
   if (g[0].length === 0)
     throw "Looks like there is no match pair between the given input and output token";
   return g;
@@ -127,6 +127,7 @@ const rearrangeTokenList = (
 /**
  * This graph is relatively straight forward to build if the diameter is limited to 2
  *
+ * @param pools should only be pools which touch the input or output token
  */
 export const buildDirectedGraph = (
   pools: PoolInfoFloats[],
@@ -139,9 +140,11 @@ export const buildDirectedGraph = (
   const allTokensBadOrder = getAllTokensUsed(pools);
   const allTokens = rearrangeTokenList(allTokensBadOrder, tokenIn, tokenOut);
 
+  console.log("Pools used", pools)
   const nodes = allTokens.map((tok) =>
     tokenToGraphNode(tok, poolsWithIdx, allTokens)
   );
+
   const filteredNodes = removeEmptyNodes(
     removeOutputOutgoingEdges(
       removeEdgesBackToInToken(removeEdgesNotTouchingInOrOut(nodes))
@@ -153,9 +156,10 @@ export const buildDirectedGraph = (
 };
 
 near.account(config.near.PROXY_ACCOUNT).then(async (account) => {
-  const tokenIn = "wrap.testnet";
-  const tokenOut = "banana.ft-fin.testnet";
+  const tokenIn = "banana.ft-fin.testnet";
+  const tokenOut = "shawn.testnet";
   const pools = await getPoolsTouchingInOrOut(account, tokenIn, tokenOut);
   const G = buildDirectedGraph(pools, tokenIn, tokenOut);
+  console.log("The driected graph", JSON.stringify(G))
   await findOptV2(G, 1000.222);
 });
