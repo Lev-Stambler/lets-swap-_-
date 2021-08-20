@@ -80,7 +80,7 @@
         Loading... This may take a sec cause this code is very slow right now.
         (Unoptimized optimization (; )
       {/if}
-      {#if swapInfo}
+      {#if swapInfo && !loading}
         <h1>Result</h1>
         <p>{JSON.stringify(swapInfo, null, 3)}</p>
       {/if}

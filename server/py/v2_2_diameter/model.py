@@ -8,8 +8,8 @@ from torch.functional import Tensor
 INP_TENSOR = torch.FloatTensor([0])
 EXPECTED_OUT = torch.FloatTensor([float('-inf')])[0]
 # It seems like LR should be dependent on the size of the input m
-LR_1 = 2e-2
-LR_2 = 4e-3
+LR_1 = 5e-1
+LR_2 = 5e-2
 
 # Assume a test is running if no cli args are passed in for values
 
