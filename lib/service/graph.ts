@@ -1,6 +1,6 @@
 import { AccountId } from "@malloc/sdk";
 import assert from "assert";
-import { config } from "./config";
+import { config } from "../config";
 import { findOptV2 } from "./get-optimized";
 import {
   getAllTokensUsed,
@@ -11,16 +11,16 @@ import {
   DirectedGraph,
   GraphEdge,
   GraphNode,
-} from "./interfaces/graph-interfaces";
-import { PoolInfo, PoolInfoFloats } from "./interfaces/ref-interfaces";
+} from "../interfaces/graph-interfaces";
+import { PoolInfo, PoolInfoFloats } from "../interfaces/ref-interfaces";
 import { near } from "./near";
-import { swapArr } from "./utils";
+import { swapArr } from "../utils";
 
 interface PoolInfoWithIndex extends PoolInfo {
   index: number;
 }
 
-const getPoolId = (edge: GraphEdge) => edge[1][3];
+export const getPoolId = (edge: GraphEdge) => edge[1][3];
 
 const tokenToGraphNode = (
   current_token: AccountId,
@@ -155,11 +155,11 @@ export const buildDirectedGraph = (
   };
 };
 
-near.account(config.near.PROXY_ACCOUNT).then(async (account) => {
-  const tokenIn = "banana.ft-fin.testnet";
-  const tokenOut = "shawn.testnet";
-  const pools = await getPoolsTouchingInOrOut(account, tokenIn, tokenOut);
-  const G = buildDirectedGraph(pools, tokenIn, tokenOut);
-  console.log("The driected graph", JSON.stringify(G))
-  await findOptV2(G, 1000.222);
-});
+// near.account(config.near.PROXY_ACCOUNT).then(async (account) => {
+//   const tokenIn = "banana.ft-fin.testnet";
+//   const tokenOut = "shawn.testnet";
+//   const pools = await getPoolsTouchingInOrOut(account, tokenIn, tokenOut);
+//   const G = buildDirectedGraph(pools, tokenIn, tokenOut);
+//   console.log("The driected graph", JSON.stringify(G))
+//   await findOptV2(G, 1000.222);
+// });

@@ -1,30 +1,30 @@
 import { AccountId } from "@malloc/sdk";
 import { spawn } from "child_process";
 import { join } from "path";
-import { config } from "./config";
-import { DirectedGraph } from "./interfaces/graph-interfaces";
-import { PoolInfo } from "./interfaces/ref-interfaces";
+import { config } from "../config";
+import { DirectedGraph } from "../interfaces/graph-interfaces";
+import { PoolInfo } from "../interfaces/ref-interfaces";
+import { getPoolId } from "./graph";
 
-interface OptRet {
+export interface OptRet {
   start_output: number;
   end_output: number;
-  pool_weights: string[];
+  pool_weights: number[][];
+  pool_ids: number[][];
+  in_index: 0;
+  out_index: 1;
 }
 
 export const findOptV2 = async (
   graph: DirectedGraph,
   amountIn: number // formatted amount, i.e. in float form
-): Promise<void> => {
+): Promise<OptRet> => {
   console.log("Finding optimizations");
-  const pathToPyFile = join(__dirname, "../py/v2_2_diameter/model.py");
-  const G = JSON.stringify(graph.graph)
-  const m = JSON.stringify(amountIn)
+  const pathToPyFile = join(__dirname, "../../py/v2_2_diameter/model.py");
+  const G = JSON.stringify(graph.graph);
+  const m = JSON.stringify(amountIn);
 
-  const pythonProcess = spawn("python3", [
-    pathToPyFile,
-    G,
-    m,
-  ]);
+  const pythonProcess = spawn("python3", [pathToPyFile, G, m]);
   const ret = await new Promise<string>((resolve, reject) => {
     pythonProcess.stderr.on("data", (data) => {
       reject(data.toString());
@@ -33,8 +33,15 @@ export const findOptV2 = async (
       resolve(data.toString());
     });
   });
-  const retParse: OptRet = JSON.parse(ret) as OptRet;
+  const pool_ids = graph.graph.map((edges) => edges.map((e) => getPoolId(e)));
+  const retParse: OptRet = {
+    ...JSON.parse(ret),
+    in_index: 0,
+    out_index: 0,
+    pool_ids,
+  };
   console.log("Return from the optimizer", retParse);
+  return retParse;
 };
 
 export const findOptV1 = async (

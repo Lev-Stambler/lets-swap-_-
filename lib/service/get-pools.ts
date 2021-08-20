@@ -3,13 +3,11 @@ import {
   SpecialAccount,
   wrapAccountConnectedWallet,
 } from "@malloc/sdk";
-import { Near, Account, utils } from "near-api-js";
-import * as keyStores from "near-api-js/lib/key_stores";
-import { config } from "./config";
-import { findOptV1 } from "./get-optimized";
-import { PoolInfo, PoolInfoFloats } from "./interfaces/ref-interfaces";
+import { Account } from "near-api-js";
+import { config } from "../config";
+import { PoolInfo, PoolInfoFloats } from "../interfaces/ref-interfaces";
 import { ftGetTokenMetadata, TokenMetadata, toReadableNumber } from "./token";
-import { dedup } from "./utils";
+import { dedup } from "../utils";
 
 export const getPoolsTouchingInOrOut = async (
   account: Account,
