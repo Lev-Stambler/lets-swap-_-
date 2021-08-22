@@ -16,7 +16,8 @@
 
   async function init() {
     const module = await import("../rust/pkg/index")
-    await module.optimize(JSON.stringify({"nodes":[{"id":0,"edges_out":[{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.03,"pool_id":100,"fraction":null},{"next_node_indx":1,"token_in_amount":100000.0,"token_out_amount":100000.0,"fee":0.03,"pool_id":101,"fraction":null},{"next_node_indx":2,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.001,"pool_id":102,"fraction":null}]},{"id":1,"edges_out":[]},{"id":2,"edges_out":[{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.001,"pool_id":103,"fraction":null},{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.0001,"pool_id":104,"fraction":null}]}]}), 100.0)
+    const ret = await module.optimize(JSON.stringify({"nodes":[{"id":0,"edges_out":[{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.03,"pool_id":100,"fraction":null},{"next_node_indx":1,"token_in_amount":100000.0,"token_out_amount":100000.0,"fee":0.03,"pool_id":101,"fraction":null},{"next_node_indx":2,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.001,"pool_id":102,"fraction":null}]},{"id":1,"edges_out":[]},{"id":2,"edges_out":[{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.001,"pool_id":103,"fraction":null},{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.0001,"pool_id":104,"fraction":null}]}]}), 100.0)
+    console.log(ret)
     // module.optimize(JSON.stringify({}))
     // Initialize connection to the NEAR testnet
     // const near = await connect(
@@ -66,9 +67,9 @@
 </script>
 
 <main>
-  {init()}
+  <!-- {init()} -->
   {#await init()}
-    Loading...
+    Beep boop, this may take a sec. Loading...
   {:then value}
     <!-- {#if $nearStore?.walletConnection.isSignedIn()} -->
     {#if true}
