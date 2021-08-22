@@ -1,4 +1,4 @@
-// #![no_std]
+#![no_std]
 
 extern crate web_sys;
 #[macro_use]
