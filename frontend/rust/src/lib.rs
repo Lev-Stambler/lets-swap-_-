@@ -1,4 +1,4 @@
-#![no_std]
+// #![no_std]
 
 extern crate web_sys;
 #[macro_use]
@@ -398,6 +398,7 @@ mod tests {
                 },
             ],
         };
+        // println!("{}", serde_json::to_string(&g).unwrap());
         let input = 100.;
         let (ret, out_opt) = _optimize(g, input);
         println!(
@@ -425,6 +426,7 @@ mod tests {
             pool_paths,
             vec![vec![100], vec![101], vec![102, 103], vec![102, 104]]
         );
+
     }
 
     #[test]
