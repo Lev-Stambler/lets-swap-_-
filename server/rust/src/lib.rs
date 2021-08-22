@@ -328,7 +328,9 @@ fn get_output_amount(amount: &f64, pool: &Edge) -> f64 {
 mod tests {
     use std::vec;
 
-    use crate::{Edge, Graph, Node, _optimize, optimize, optimized_graph_to_pool_paths_and_amounts};
+    use crate::{
+        Edge, Graph, Node, _optimize, optimize, optimized_graph_to_pool_paths_and_amounts,
+    };
 
     fn assert_within_range(val: f64, expected: f64, range: f64) {
         assert!(expected - range <= val && val <= expected + range);
@@ -398,7 +400,10 @@ mod tests {
         };
         let input = 100.;
         let (ret, out_opt) = _optimize(g, input);
-        println!("Got return graph for 2 level of {:?} with out of {:?}", ret, out_opt);
+        println!(
+            "Got return graph for 2 level of {:?} with out of {:?}",
+            ret, out_opt
+        );
         assert_within_range(ret.nodes[0].edges_out[0].fraction.unwrap(), 0., 0.001);
         assert_within_range(ret.nodes[0].edges_out[1].fraction.unwrap(), 0.38, 0.001);
         assert_within_range(ret.nodes[0].edges_out[2].fraction.unwrap(), 0.62, 0.001);
@@ -406,9 +411,20 @@ mod tests {
         assert_within_range(ret.nodes[2].edges_out[1].fraction.unwrap(), 0.5056, 0.001);
         assert_within_range(out_opt, 98.18, 0.01);
 
-        let (amounts, pool_paths) = optimized_graph_to_pool_paths_and_amounts(&ret, 0, input, &vec![]);
+        let (amounts, pool_paths) =
+            optimized_graph_to_pool_paths_and_amounts(&ret, 0, input, &vec![]);
         assert_eq!(amounts.len(), pool_paths.len());
         println!("Got amounts {:?} and pool paths {:?}", amounts, pool_paths);
+
+        assert_eq!(
+            amounts.iter().map(|v| *v as u64).collect::<Vec<u64>>(),
+            vec![0, 38, 30, 31]
+        );
+
+        assert_eq!(
+            pool_paths,
+            vec![vec![100], vec![101], vec![102, 103], vec![102, 104]]
+        );
     }
 
     #[test]
