@@ -1,7 +1,8 @@
 <script lang="ts">
+  import {nearStore} from '../utils/store'
 
   function login() {
-    // $nearStore?.walletConnection.requestSignIn($nearStore.config.contractName, "Malloc Contract");
+    $nearStore?.walletConnection.requestSignIn($nearStore.config.contractName, "Malloc Contract");
   }
 </script>
 

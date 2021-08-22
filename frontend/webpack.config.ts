@@ -36,6 +36,7 @@ import SveltePreprocess from "svelte-preprocess";
 import Autoprefixer from "autoprefixer";
 import MiniCssExtractPlugin from "mini-css-extract-plugin";
 import CSSMinimizerPlugin from "css-minimizer-webpack-plugin";
+import NodePolyfillPlugin from "node-polyfill-webpack-plugin";
 import WasmPackPlugin from "@wasm-tool/wasm-pack-plugin";
 
 import { CleanWebpackPlugin } from "clean-webpack-plugin";
@@ -169,6 +170,7 @@ const config: Configuration = {
     new WasmPackPlugin({
       crateDirectory: path.join(__dirname, "rust"),
     }),
+    new NodePolyfillPlugin(),
   ],
   devtool: isProduction && !sourceMapsInProduction ? false : "source-map",
   stats: {

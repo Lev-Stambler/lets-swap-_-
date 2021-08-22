@@ -914,7 +914,15 @@
     "@types/yargs" "^15.0.0"
     chalk "^4.0.0"
 
-"@malloc/sdk@../../malloc/malloc-near-2/ts-packages/malloc-client/":
+"@malloc/ops@../../malloc/malloc-near-2/ts-packages/malloc-ops/":
+  version "0.0.0"
+  dependencies:
+    "@malloc/sdk" "file:../../../../.cache/yarn/v6/npm-@malloc-ops-0.0.0-b3679114-a969-43d4-a360-8baa1c9e6c7b-1629666696482/node_modules/@malloc/malloc-client"
+    borsh "^0.4.0"
+    js-sha256 "^0.9.0"
+    regenerator-runtime "~0.13.5"
+
+"@malloc/sdk@file:../../malloc/malloc-near-2/ts-packages/malloc-client":
   version "0.0.0"
   dependencies:
     borsh "^0.4.0"
@@ -5507,7 +5515,7 @@ node-forge@^0.10.0:
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.10.0.tgz#32dea2afb3e9926f02ee5ce8794902691a676bf3"
   integrity sha512-PPmu8eEeG9saEUvI97fm4OYxXVB6bFvyNTyiUOBichBpFG8A1Ljw3bY62+5oOjDEMHRnd0Y7HQ+x7uzxOzC6JA==
 
-node-polyfill-webpack-plugin@^1.1.0:
+node-polyfill-webpack-plugin@^1.1.4:
   version "1.1.4"
   resolved "https://registry.yarnpkg.com/node-polyfill-webpack-plugin/-/node-polyfill-webpack-plugin-1.1.4.tgz#56bfa4d16e17addb9d6b1ef3d04e790c401f5f1d"
   integrity sha512-Z0XTKj1wRWO8o/Vjobsw5iOJCN+Sua3EZEUc2Ziy9CyVvmHKu6o+t4gUH9GOE0czyPR94LI6ZCV/PpcM8b5yow==

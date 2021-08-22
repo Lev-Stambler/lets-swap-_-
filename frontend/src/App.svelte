@@ -5,6 +5,8 @@
   import { stringify } from "postcss";
   import Login from "./components/Login.svelte";
   import getConfig, { baseUrl } from "./utils/config";
+  import {nearStore, initNearStore} from './utils/store'
+
 
   let inputToken: string = "banana.ft-fin.testnet";
   let outputToken: string = "wrap.testnet";
@@ -18,50 +20,26 @@
     const module = await import("../rust/pkg/index")
     const ret = await module.optimize(JSON.stringify({"nodes":[{"id":0,"edges_out":[{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.03,"pool_id":100,"fraction":null},{"next_node_indx":1,"token_in_amount":100000.0,"token_out_amount":100000.0,"fee":0.03,"pool_id":101,"fraction":null},{"next_node_indx":2,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.001,"pool_id":102,"fraction":null}]},{"id":1,"edges_out":[]},{"id":2,"edges_out":[{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.001,"pool_id":103,"fraction":null},{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.0001,"pool_id":104,"fraction":null}]}]}), 100.0)
     console.log(ret)
+    $nearStore
     // module.optimize(JSON.stringify({}))
     // Initialize connection to the NEAR testnet
-    // const near = await connect(
-    //   Object.assign(
-    //     { deps: { keyStore: new keyStores.BrowserLocalStorageKeyStore() } },
-    //     nearConfig
-    //   )
-    // );
-    // await initNearStore(near);
+    const near = await connect(
+      Object.assign(
+        { deps: { keyStore: new keyStores.BrowserLocalStorageKeyStore() } },
+        nearConfig
+      )
+    );
+    await initNearStore(near);
+
+    if (!$nearStore?.walletConnection.isSignedIn())
+      return false;
     // Initializing Wallet based Account. It can work with NEAR testnet wallet that
     // is hosted at https://wallet.testnet.near.org
-  }
-
-  const getTokenSwapUrl = (
-    inTok: string,
-    outTok: string,
-    amount: number
-  ): string => `${baseUrl}/get-swap/${inTok}/${outTok}/${amount}`;
-
-  async function getTokenSwaps(e: Event) {
-    e.preventDefault();
-    loading = true;
-    // TODO: config
-    let amountParsed: number;
-    try {
-      amountParsed = parseFloat(amount);
-    } catch (e) {
-      alert(`Failed to parse amount value ${amount}`);
-      return;
-    }
-    try {
-      const ret = await fetch(
-        getTokenSwapUrl(inputToken, outputToken, amountParsed)
-      );
-      swapInfo = await ret.json();
-    } catch (e) {
-      alert(`Failed to get a result with error ${e}`);
-    }
-
-    loading = false;
+    return true
   }
 
   function logout() {
-    // $nearStore.walletConnection.signOut();
+    $nearStore.walletConnection.signOut();
     window.location.reload();
   }
 </script>
@@ -70,12 +48,11 @@
   <!-- {init()} -->
   {#await init()}
     Beep boop, this may take a sec. Loading...
-  {:then value}
-    <!-- {#if $nearStore?.walletConnection.isSignedIn()} -->
-    {#if true}
+  {:then signedIn}
+    {#if signedIn}
       <!-- TODO: navbar -->
       <button class="log-out" on:click={logout}>Logout</button>
-      <form action="" on:submit={getTokenSwaps}>
+      <form action="">
         Input Token: <input type="text" bind:value={inputToken} /><br />
         Output Token: <input type="text" bind:value={outputToken} /><br />
         Amount: <input type="text" bind:value={amount} /><br />

@@ -1,4 +1,4 @@
-const CONTRACT_NAME = "dev-1628729326940-20289955091332";
+const CONTRACT_NAME = "dev-1629304735257-47782394333265";
 
 export const baseUrl = "http://localhost:3000"
 export const env: Env = "development";
