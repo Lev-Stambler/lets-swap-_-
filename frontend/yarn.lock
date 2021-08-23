@@ -914,15 +914,15 @@
     "@types/yargs" "^15.0.0"
     chalk "^4.0.0"
 
-"@malloc/ops@../../malloc/malloc-near-2/ts-packages/malloc-ops/":
+"@malloc/ops@../../malloc/malloc-near-2/ts-packages/malloc-ops":
   version "0.0.0"
   dependencies:
-    "@malloc/sdk" "file:../../../../.cache/yarn/v6/npm-@malloc-ops-0.0.0-b3679114-a969-43d4-a360-8baa1c9e6c7b-1629666696482/node_modules/@malloc/malloc-client"
+    "@malloc/sdk" "file:../../../../.cache/yarn/v6/npm-@malloc-ops-0.0.0-5a4619dd-5961-4bd1-82f0-d264fad26c53-1629728998154/node_modules/@malloc/malloc-client"
     borsh "^0.4.0"
     js-sha256 "^0.9.0"
     regenerator-runtime "~0.13.5"
 
-"@malloc/sdk@file:../../malloc/malloc-near-2/ts-packages/malloc-client":
+"@malloc/sdk@../../malloc/malloc-near-2/ts-packages/malloc-client/", "@malloc/sdk@file:../../malloc/malloc-near-2/ts-packages/malloc-client":
   version "0.0.0"
   dependencies:
     borsh "^0.4.0"

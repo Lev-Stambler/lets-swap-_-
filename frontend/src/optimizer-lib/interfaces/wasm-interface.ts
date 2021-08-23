@@ -1,1 +1,3 @@
-export type OptimizerFn = (inp: string, amountIn: number) => string
+import { optimize } from "rust/pkg";
+
+export type OptimizerFn = typeof optimize

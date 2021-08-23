@@ -8,9 +8,15 @@
   import { nearStore, initNearStore } from "./utils/store";
   import { OptimizerFn } from "./optimizer-lib/interfaces/wasm-interface";
   import { createMallocOps } from "./optimizer-lib";
+  import { getPoolsTouchingInOrOut } from "./optimizer-lib/service/get-pools";
+  import { buildDirectedGraph } from "./optimizer-lib/service/graph";
+  import {
+    fromReadableNumber,
+    ftGetTokenMetadata,
+  } from "./optimizer-lib/service/token";
 
-  let inputToken: string = "banana.ft-fin.testnet";
   let outputToken: string = "wrap.testnet";
+  let inputToken: string = "rft.tokenfactory.testnet";
   let amount: string = null;
   let loading = false;
   let swapInfo;
@@ -39,11 +45,75 @@
     return true;
   }
 
+  async function deposit() {
+    const pools = await getPoolsTouchingInOrOut(
+      $nearStore.account,
+      inputToken,
+      outputToken
+    );
+    const { graph: G, tokens } = buildDirectedGraph(
+      pools,
+      inputToken,
+      outputToken
+    );
+    const {
+      txs: registerAllToks,
+    } = await $nearStore.mallocClient.registerAccountDeposits(
+      tokens,
+      [getConfig().refSwapContract],
+      {
+        executeTransactions: false,
+      }
+    );
+    const {
+      txs: registerMallocAndCurrentAccount,
+    } = await $nearStore.mallocClient.registerAccountDeposits(
+      [inputToken, outputToken],
+      [$nearStore.account.accountId, getConfig().contractName],
+      {
+        executeTransactions: false,
+      }
+    );
+
+    const tokMetadata = await ftGetTokenMetadata(
+      $nearStore.account,
+      inputToken
+    );
+    await $nearStore.mallocClient.deposit(
+      fromReadableNumber(parseFloat(amount), tokMetadata.decimals),
+      inputToken,
+      [...registerAllToks, ...registerMallocAndCurrentAccount]
+    );
+  }
+
   async function createMallocOpsWrapper(e: Event) {
     e.preventDefault();
-    loading = true
-    createMallocOps($nearStore.account, inputToken, outputToken, parseFloat(amount), optimizerFn);
-    loading = false
+    loading = true;
+    new Promise<void>(async (res, rej) => {
+      const pools = await getPoolsTouchingInOrOut(
+        $nearStore.account,
+        inputToken,
+        outputToken
+      );
+      const { graph: G, tokens } = buildDirectedGraph(
+        pools,
+        inputToken,
+        outputToken
+      );
+      const instr = await createMallocOps(
+        G,
+        tokens,
+        $nearStore.account,
+        inputToken,
+        outputToken,
+        parseFloat(amount),
+        $nearStore.account.accountId,
+        optimizerFn
+      );
+      await $nearStore.mallocClient.runEphemeralConstruction(instr);
+      loading = false;
+      res();
+    });
   }
 
   function logout() {
@@ -66,6 +136,7 @@
         Amount: <input type="text" bind:value={amount} /><br />
         <button type="sumbit">Submit</button>
       </form>
+      <button on:click={deposit}>Deposit and register with accounts</button>
       {#if loading}
         Loading... This may take a sec cause this code is very slow right now.
         (Unoptimized optimization (; )
@@ -83,6 +154,13 @@
   {/await}
 </main>
 
+<!-- 
+  TODO: make it return min amount out (just 1 for now is fine)
+  make it return tokens out
+
+  Then, integrate with malloc ops. Feel free to change malloc ops to be used better
+  (like make tokens out actions/ construction more obvious that order matters)
+ -->
 <style>
   main {
     text-align: center;
@@ -104,11 +182,3 @@
     }
   }
 </style>
-
-<!-- 
-  TODO: make it return min amount out (just 1 for now is fine)
-  make it return tokens out
-
-  Then, integrate with malloc ops. Feel free to change malloc ops to be used better
-  (like make tokens out actions/ construction more obvious that order matters)
- -->

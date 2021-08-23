@@ -72,15 +72,23 @@ extern "C" {
 }
 
 #[wasm_bindgen]
-pub fn optimize(graph_str: String, input: f64) -> String {
+pub fn optimize(graph_str: String, token_ids: String, input: f64) -> String {
     let mut g: Graph = serde_json::from_str(&graph_str).unwrap();
+    let token_ids: Vec<String> = serde_json::from_str(&token_ids).unwrap();
+    assert_eq!(
+        token_ids.len(),
+        g.nodes.len(),
+        "Expected the number of tokens in to equal the number of nodes"
+    );
+
     let (g, expected_out) = _optimize(g, input);
-    let (fractions, pool_paths) = optimized_graph_to_pool_paths_and_amounts(&g, 0, 1., &vec![]);
+    let (fractions, pool_paths, token_outs, min_amount_outs) =
+        optimized_graph_to_pool_paths_and_amounts(&g, 0, 1., &vec![], &vec![], &vec![], &token_ids);
     let ret = Return {
         expected_out,
         fractions,
-        min_amount_outs: vec![],
-        token_outs: vec![],
+        min_amount_outs,
+        token_outs,
         pool_paths,
     };
     serde_json::to_string(&ret).unwrap()
@@ -102,34 +110,67 @@ pub fn optimize(graph_str: String, input: f64) -> String {
 // }
 
 // TODO: make this iterative cause this is very inefficient w/ memory
+/// Unroll the graph into a series of arrays for executing the transactions
+///
+/// @returns a vector of fractional splits, a vector of paths (from 1 pool id to the next), a vector of token outs for each pool, a vector of minimum amount serialized into a string
 pub fn optimized_graph_to_pool_paths_and_amounts(
     g: &Graph,
     node_id: usize,
     curr_amount: f64,
-    curr_path: &[PoolId], // mut inp_fractions: Vec<f64>,
-                          // mut inp_paths: Vec<Vec<PoolId>>
-) -> (Vec<f64>, Vec<Vec<PoolId>>) {
+    curr_path: &[PoolId],
+    token_outs: &[String],
+    min_amounts: &[String],
+    token_ids: &[String],
+) -> (
+    Vec<f64>,
+    Vec<Vec<PoolId>>,
+    Vec<Vec<String>>,
+    Vec<Vec<String>>,
+) {
     let node = &g.nodes[node_id];
     if node.id == 1 {
-        return (vec![curr_amount], vec![curr_path.to_owned()]);
+        return (
+            vec![curr_amount],
+            vec![curr_path.to_owned()],
+            vec![token_outs.to_owned()],
+            vec![min_amounts.to_owned()],
+        );
     }
     let mut fractions = vec![];
     let mut paths = vec![];
+    let mut tokens_out_result = vec![];
+    let mut min_outs_results = vec![];
+
     for edge in node.edges_out.iter() {
         assert!(edge.fraction.is_some());
         let new_amount = curr_amount * edge.fraction.unwrap();
+
         let mut new_path = curr_path.to_owned();
         new_path.push(edge.pool_id);
-        let (mut _inp_fractions, mut _inp_paths) = optimized_graph_to_pool_paths_and_amounts(
-            g,
-            edge.next_node_indx,
-            new_amount,
-            &new_path,
-        );
+
+        let mut new_tok_outs = token_outs.to_owned();
+        new_tok_outs.push(token_ids[edge.next_node_indx].to_owned());
+
+        let mut new_min_outs = min_amounts.to_owned();
+        // TODO: min amounts
+        new_min_outs.push("1".to_owned());
+
+        let (mut _inp_fractions, mut _inp_paths, mut _token_outs, mut _min_amounts) =
+            optimized_graph_to_pool_paths_and_amounts(
+                g,
+                edge.next_node_indx,
+                new_amount,
+                &new_path,
+                &new_tok_outs,
+                &new_min_outs,
+                token_ids,
+            );
         fractions.append(&mut _inp_fractions);
         paths.append(&mut _inp_paths);
+        tokens_out_result.append(&mut _token_outs);
+        min_outs_results.append(&mut _min_amounts);
     }
-    (fractions, paths)
+    (fractions, paths, tokens_out_result, min_outs_results)
 }
 
 pub fn _optimize(g: Graph, input: f64) -> (Graph, f64) {

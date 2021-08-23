@@ -16,10 +16,11 @@ export interface OptRet {
 
 export const findOptV2 = async (
   graph: DirectedGraph,
+  tokenIds: string[],
   amountIn: number, // formatted amount, i.e. in float form
   optimizerFn: OptimizerFn
 ): Promise<OptRet> => {
   //@ts-ignore
-  const retStr = await optimizerFn(JSON.stringify(graph), amountIn);
+  const retStr = await optimizerFn(JSON.stringify(graph), JSON.stringify(tokenIds), amountIn);
   return JSON.parse(retStr);
 };

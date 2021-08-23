@@ -152,7 +152,7 @@ export const buildDirectedGraph = (
   pools: PoolInfoFloats[],
   tokenIn: AccountId,
   tokenOut: AccountId
-): DirectedGraph => {
+): { graph: DirectedGraph; tokens: AccountId[] } => {
   const poolsWithIdx = pools.map((pool, i) => {
     return { ...pool, index: i };
   });
@@ -170,7 +170,10 @@ export const buildDirectedGraph = (
     )
   );
   return {
-    nodes: filteredNodes,
+    graph: {
+      nodes: filteredNodes,
+    },
+    tokens: allTokens,
   };
 };
 

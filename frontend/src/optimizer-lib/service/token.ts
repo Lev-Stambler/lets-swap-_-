@@ -43,3 +43,10 @@ export const toReadableNumber = (
 
   return `${wholeStr}.${fractionStr}`.replace(/\.?0+$/, "");
 };
+
+export const fromReadableNumber = (
+  decimals: number,
+  number: number
+): string => {
+  return number.toPrecision(decimals + 1).replace(".", "");
+};
