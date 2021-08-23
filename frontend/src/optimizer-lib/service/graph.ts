@@ -109,7 +109,6 @@ const removeOutputOutgoingEdges = (g: GraphNode[]): GraphNode[] => {
 };
 
 const removeEdgesBackToInToken = (g: GraphNode[]): GraphNode[] => {
-  console.log(g);
   const gFiltered = g.map((edges) => {
     const e = edges.edges_out.filter((edge) => edge.next_node_indx !== 0);
     return {

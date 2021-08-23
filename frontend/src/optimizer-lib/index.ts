@@ -26,7 +26,7 @@ export async function createMallocOps(
 ) {
   console.log("The driected graph", JSON.stringify(G));
   const optimizedRet = await findOptV2(G, tokens, amount, optimizerFn);
-  console.log(optimizedRet)
+  console.log("Optimized return of", optimizedRet)
 
   const MallocSwapTemplate = MOps.MallocCallAction({
     mallocCallContractID: getConfig().refSwapContract,

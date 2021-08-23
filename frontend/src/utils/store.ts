@@ -24,7 +24,6 @@ interface NearStore {
 export const nearStore = writable<null | NearStore>(null);
 
 export const initNearStore = (near: Near) => {
-  console.log("AAA");
   const config = getConfig("development");
 
   const account = wrapAccountConnectedWallet(

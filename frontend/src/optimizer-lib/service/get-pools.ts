@@ -9,13 +9,27 @@ import { PoolInfo, PoolInfoFloats } from "../interfaces/ref-interfaces";
 import { ftGetTokenMetadata, TokenMetadata, toReadableNumber } from "./token";
 import { dedup } from "../utils";
 
+export interface IGetPoolsTouching {
+  blacklist?: AccountId[];
+  whitelist?: AccountId[];
+}
+
 export const getPoolsTouchingInOrOut = async (
   account: Account,
   tokenIn: AccountId,
-  tokenOut: AccountId
+  tokenOut: AccountId,
+  opts?: IGetPoolsTouching
 ): Promise<PoolInfoFloats[]> => {
   const pools = await getAllPools(account);
-  return pools.filter(
+  const blacklistFn = (pool: PoolInfoFloats) =>
+    !poolHasSomeTokens(opts?.blacklist)(pool);
+  const poolsFilteredByBlacklist = opts?.blacklist
+    ? pools.filter(blacklistFn)
+    : pools;
+  const poolsFilteredByBlacklistAndWhitelist = opts?.whitelist
+    ? pools.filter(poolHasAllTokens(opts.whitelist))
+    : poolsFilteredByBlacklist;
+  return poolsFilteredByBlacklistAndWhitelist.filter(
     (pool) => poolHasToken(tokenIn)(pool) || poolHasToken(tokenOut)(pool)
   );
 };
@@ -48,10 +62,13 @@ export const getAllPools = async (
     "get_number_of_pools"
   );
 
-  const pools: Omit<PoolInfo[], "id"> = await account.viewFunction(
+  const pools: Omit<PoolInfo, "id">[] = await account.viewFunction(
     config.REF_CONTRACT,
     "get_pools",
-    { from_index: 0, limit: numb_pools }
+    {
+      from_index: 0,
+      limit: numb_pools,
+    }
   );
 
   const allTokens = getAllTokensUsed(pools);
@@ -81,8 +98,17 @@ export const getAllPools = async (
   return poolsMapped;
 };
 
-export const poolHasToken =
-  (token: AccountId) => (pool: PoolInfo | PoolInfoFloats) => {
-    const idx = pool.token_account_ids.indexOf(token);
-    return idx !== -1 && pool.amounts[idx].toString() !== "0";
-  };
+export const poolHasToken = (token: AccountId) => (
+  pool: PoolInfo | PoolInfoFloats
+) => {
+  const idx = pool.token_account_ids.indexOf(token);
+  return idx !== -1 && pool.amounts[idx].toString() !== "0";
+};
+
+const poolHasSomeTokens = (tokens: AccountId[]) => (
+  pool: PoolInfo | PoolInfoFloats
+) => tokens.some((token) => poolHasToken(token)(pool));
+
+const poolHasAllTokens = (tokens: AccountId[]) => (
+  pool: PoolInfo | PoolInfoFloats
+) => tokens.every((token) => poolHasToken(token)(pool));

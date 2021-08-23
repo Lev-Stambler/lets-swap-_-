@@ -16,7 +16,7 @@
   } from "./optimizer-lib/service/token";
 
   let outputToken: string = "wrap.testnet";
-  let inputToken: string = "rft.tokenfactory.testnet";
+  let inputToken: string = "banana.tokenfactory.testnet";
   let amount: string = null;
   let loading = false;
   let swapInfo;
@@ -65,6 +65,7 @@
         executeTransactions: false,
       }
     );
+    // TODO: w/ malloc client what if account does not exist here?
     const {
       txs: registerMallocAndCurrentAccount,
     } = await $nearStore.mallocClient.registerAccountDeposits(
