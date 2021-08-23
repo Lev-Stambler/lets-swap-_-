@@ -1,0 +1,1 @@
+export type OptimizerFn = (inp: string, amountIn: number) => string

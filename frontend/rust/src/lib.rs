@@ -46,8 +46,10 @@ pub struct Graph {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Return {
     pub pool_paths: Vec<Vec<PoolId>>,
+    pub token_outs: Vec<Vec<String>>,
+    pub min_amount_outs: Vec<Vec<String>>, // TODO: U128
     // TODO: you would wanna make this exact with u128 or whatever in the future
-    pub amounts: Vec<f64>,
+    pub fractions: Vec<f64>,
     pub expected_out: f64,
 }
 
@@ -73,10 +75,12 @@ extern "C" {
 pub fn optimize(graph_str: String, input: f64) -> String {
     let mut g: Graph = serde_json::from_str(&graph_str).unwrap();
     let (g, expected_out) = _optimize(g, input);
-    let (amounts, pool_paths) = optimized_graph_to_pool_paths_and_amounts(&g, 0, input, &vec![]);
+    let (fractions, pool_paths) = optimized_graph_to_pool_paths_and_amounts(&g, 0, 1., &vec![]);
     let ret = Return {
         expected_out,
-        amounts,
+        fractions,
+        min_amount_outs: vec![],
+        token_outs: vec![],
         pool_paths,
     };
     serde_json::to_string(&ret).unwrap()
@@ -222,9 +226,17 @@ fn get_run_forward_fn(
             } else {
                 (variable_end_index[node_id - 1], variable_end_index[node_id])
             };
+
+            // This means that the node id is empty
+            // TODO: this should never occur
+            // if variables_start == variables_end {
+            //     continue;
+            // }
+
             let splits_for_node_except_0th = &x[variables_start..variables_end];
             let split_0th = 1.0 - splits_for_node_except_0th.iter().sum::<f64>();
 
+            // unsafe { log(&format!("AAA {}", node_id)); };
             // Return total_out to be the most negative possible value to put in
             // place a "constraint" that the splits have to be in range (from 0 to 1)
             if check_out_of_range(&split_0th)
@@ -235,8 +247,9 @@ fn get_run_forward_fn(
                 break;
             }
 
-            // println!("{:?}", splits_for_node_except_0th);
+            // unsafe { log(&format!("BBB {}", node_id)); };
             assert_eq!(splits_for_node_except_0th.len(), node.edges_out.len() - 1);
+
             let mut pool_inputs: Vec<f64> = splits_for_node_except_0th
                 .iter()
                 .map(|portion| portion * amount)
@@ -426,7 +439,6 @@ mod tests {
             pool_paths,
             vec![vec![100], vec![101], vec![102, 103], vec![102, 104]]
         );
-
     }
 
     #[test]
