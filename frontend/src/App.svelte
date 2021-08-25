@@ -1,6 +1,5 @@
 <script lang="ts">
   import { connect, keyStores } from "@malloc/sdk/dist/near-rexport";
-  import { MAX_GAS } from "@malloc/sdk/dist/tx";
   import BN from "bn.js";
   import { stringify } from "postcss";
   import Login from "./components/Login.svelte";
@@ -16,13 +15,15 @@
   } from "./optimizer-lib/service/token";
 
   let outputToken: string = "wrap.testnet";
-  let inputToken: string = "banana.tokenfactory.testnet";
+  let inputToken: string = "rft.tokenfactory.testnet";
   let amount: string = null;
   let loading = false;
   let swapInfo;
   let optimizerFn: OptimizerFn;
 
   const nearConfig = getConfig("development");
+
+  const blacklist = ["usdc.ft-fin.testnet"];
 
   async function init() {
     // const ret = await module.optimize(JSON.stringify({"nodes":[{"id":0,"edges_out":[{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.03,"pool_id":100,"fraction":null},{"next_node_indx":1,"token_in_amount":100000.0,"token_out_amount":100000.0,"fee":0.03,"pool_id":101,"fraction":null},{"next_node_indx":2,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.001,"pool_id":102,"fraction":null}]},{"id":1,"edges_out":[]},{"id":2,"edges_out":[{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.001,"pool_id":103,"fraction":null},{"next_node_indx":1,"token_in_amount":10000.0,"token_out_amount":10000.0,"fee":0.0001,"pool_id":104,"fraction":null}]}]}), 100.0)
@@ -45,11 +46,14 @@
     return true;
   }
 
-  async function deposit() {
+  async function preConstruction() {
     const pools = await getPoolsTouchingInOrOut(
       $nearStore.account,
       inputToken,
-      outputToken
+      outputToken,
+      {
+        blacklist,
+      }
     );
     const { graph: G, tokens } = buildDirectedGraph(
       pools,
@@ -59,11 +63,8 @@
     const {
       txs: registerAllToks,
     } = await $nearStore.mallocClient.registerAccountDeposits(
-      tokens,
-      [getConfig().refSwapContract],
-      {
-        executeTransactions: false,
-      }
+      tokens.filter((tok, i) => G.nodes[i].edges_out.length > 0),
+      [getConfig().refSwapContract]
     );
     // TODO: w/ malloc client what if account does not exist here?
     const {
@@ -80,11 +81,31 @@
       $nearStore.account,
       inputToken
     );
-    await $nearStore.mallocClient.deposit(
-      fromReadableNumber(parseFloat(amount), tokMetadata.decimals),
-      inputToken,
-      [...registerAllToks, ...registerMallocAndCurrentAccount]
+    console.log(tokMetadata.decimals)
+    // TODO: I think I have a bug in my ft balances...
+    console.log(
+      "DEPOSITING",
+      fromReadableNumber(tokMetadata.decimals, parseFloat(amount))
     );
+    const bal = await $nearStore.account.viewFunction(
+      inputToken,
+      "ft_balance_of",
+      {
+        account_id: $nearStore.account.accountId,
+      }
+    );
+    console.log("AAAA", bal);
+    const { txs: depositTx } = await $nearStore.mallocClient.deposit(
+      fromReadableNumber(tokMetadata.decimals, parseFloat(amount)),
+      inputToken
+    );
+    const { txs: addAcccessKey } = await $nearStore.mallocClient.addAccessKey();
+    await $nearStore.mallocClient.executeMultipleTransaction([
+      ...registerAllToks,
+      ...registerMallocAndCurrentAccount,
+      ...depositTx,
+      ...addAcccessKey,
+    ]);
   }
 
   async function createMallocOpsWrapper(e: Event) {
@@ -94,12 +115,19 @@
       const pools = await getPoolsTouchingInOrOut(
         $nearStore.account,
         inputToken,
-        outputToken
+        outputToken,
+        {
+          blacklist,
+        }
       );
       const { graph: G, tokens } = buildDirectedGraph(
         pools,
         inputToken,
         outputToken
+      );
+      const tokMetadata = await ftGetTokenMetadata(
+        $nearStore.account,
+        inputToken
       );
       const instr = await createMallocOps(
         G,
@@ -137,7 +165,9 @@
         Amount: <input type="text" bind:value={amount} /><br />
         <button type="sumbit">Submit</button>
       </form>
-      <button on:click={deposit}>Deposit and register with accounts</button>
+      <button on:click={preConstruction}
+        >Deposit and register with accounts</button
+      >
       {#if loading}
         Loading... This may take a sec cause this code is very slow right now.
         (Unoptimized optimization (; )

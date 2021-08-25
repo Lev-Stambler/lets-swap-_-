@@ -2,6 +2,7 @@
   "include": ["src/**/*", "webpack.config.ts", "rust/pkg"],
   "exclude": ["node_modules/*", "__sapper__/*", "public/*", "**/*.spec.ts"],
   "compilerOptions": {
+    "outDir": "dist",
     "declaration": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,

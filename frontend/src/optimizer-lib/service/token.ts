@@ -28,6 +28,8 @@ export const ftGetTokenMetadata = async (
     };
   }
 };
+// TODO: a swap exceeds prepaid gas, bump that ## up a bit pls
+// TODO: fix FT bug
 
 export const toReadableNumber = (
   decimals: number,
@@ -48,5 +50,19 @@ export const fromReadableNumber = (
   decimals: number,
   number: number
 ): string => {
-  return number.toPrecision(decimals + 1).replace(".", "");
+  const split = number.toString().split(".");
+  const wholePart = split[0];
+  const fracPart = split[1] || "";
+  if (split.length > 2 || fracPart.length > decimals) {
+    throw new Error(`Cannot parse '${number}' as token amount`);
+  }
+  return trimLeadingZeroes(wholePart + fracPart.padEnd(decimals, "0"));
 };
+
+function trimLeadingZeroes(value: string) {
+  value = value.replace(/^0+/, "");
+  if (value === "") {
+    return "0";
+  }
+  return value;
+}

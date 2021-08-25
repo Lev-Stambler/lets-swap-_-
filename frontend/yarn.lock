@@ -917,12 +917,21 @@
 "@malloc/ops@../../malloc/malloc-near-2/ts-packages/malloc-ops":
   version "0.0.0"
   dependencies:
-    "@malloc/sdk" "file:../../../../.cache/yarn/v6/npm-@malloc-ops-0.0.0-5a4619dd-5961-4bd1-82f0-d264fad26c53-1629728998154/node_modules/@malloc/malloc-client"
+    "@malloc/sdk" "file:../../../../.cache/yarn/v6/npm-@malloc-ops-0.0.0-17b8d8cc-f388-4f5a-95d1-6fdd7eb47e2b-1629820046265/node_modules/@malloc/malloc-client"
     borsh "^0.4.0"
     js-sha256 "^0.9.0"
     regenerator-runtime "~0.13.5"
 
-"@malloc/sdk@../../malloc/malloc-near-2/ts-packages/malloc-client/", "@malloc/sdk@file:../../malloc/malloc-near-2/ts-packages/malloc-client":
+"@malloc/sdk@../../malloc/malloc-near-2/ts-packages/malloc-client":
+  version "0.0.0"
+  dependencies:
+    borsh "^0.4.0"
+    js-sha256 "^0.9.0"
+    near "^0.2.2"
+    near-api-js "~0.42.0"
+    regenerator-runtime "~0.13.5"
+
+"@malloc/sdk@file:../../malloc/malloc-near-2/ts-packages/malloc-client":
   version "0.0.0"
   dependencies:
     borsh "^0.4.0"

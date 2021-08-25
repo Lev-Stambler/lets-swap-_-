@@ -11,6 +11,7 @@ import {
   SpecialAccountConnectedWallet,
   wrapAccountConnectedWallet,
 } from "@malloc/sdk";
+// } from "../../../../malloc/malloc-near-2/ts-packages/malloc-client/lib/malloc-client";
 import { writable } from "svelte/store";
 import getConfig from "./config";
 

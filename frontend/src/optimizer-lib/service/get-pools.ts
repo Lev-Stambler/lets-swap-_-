@@ -29,6 +29,7 @@ export const getPoolsTouchingInOrOut = async (
   const poolsFilteredByBlacklistAndWhitelist = opts?.whitelist
     ? pools.filter(poolHasAllTokens(opts.whitelist))
     : poolsFilteredByBlacklist;
+  console.log(poolsFilteredByBlacklistAndWhitelist);
   return poolsFilteredByBlacklistAndWhitelist.filter(
     (pool) => poolHasToken(tokenIn)(pool) || poolHasToken(tokenOut)(pool)
   );

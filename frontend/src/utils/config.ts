@@ -1,5 +1,5 @@
 // TODO: to .env and webpack
-const CONTRACT_NAME = "dev-1629304735257-47782394333265";
+const CONTRACT_NAME = "dev-1629304735257-47782394333265"
 const REF_SWAP_CONTRACT = "dev-1629664251608-31847817465912";
 
 export const baseUrl = "http://localhost:3000";

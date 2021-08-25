@@ -26,7 +26,7 @@ export async function createMallocOps(
 ) {
   console.log("The driected graph", JSON.stringify(G));
   const optimizedRet = await findOptV2(G, tokens, amount, optimizerFn);
-  console.log("Optimized return of", optimizedRet)
+  console.log("Optimized return of", optimizedRet);
 
   const MallocSwapTemplate = MOps.MallocCallAction({
     mallocCallContractID: getConfig().refSwapContract,
@@ -39,6 +39,8 @@ export async function createMallocOps(
     ],
     prefilledParameters: {
       recipient,
+      checkCallback: false,
+      skipFtTransfer: true,
       expectedTokensOut: [tokenOut],
     },
   });
@@ -59,13 +61,18 @@ export async function createMallocOps(
     mallocCallContractID: getConfig().refSwapContract,
     tokenIn,
   });
-  let out: ActionOutputsForConstruction = {};
-  out[tokenOut] = mallocSwaps.map((swap, i) => {
-    return {
-      element: swap,
-      fraction: floatToBN(optimizedRet.fractions[i]),
-    };
-  });
+  let out: ActionOutputsForConstruction = [
+    {
+      token_id: tokenIn,
+      next: mallocSwaps.map((swap, i) => {
+        return {
+          element: swap,
+          fraction: floatToBN(optimizedRet.fractions[i]),
+        };
+      }),
+    },
+  ];
+
   const construction = MOps.Construction({
     in: transfer(),
     out,
@@ -79,8 +86,9 @@ export async function createMallocOps(
     ],
   });
   const inpTokenData = await ftGetTokenMetadata(account, tokenIn);
-  const instr = compiledInst(fromReadableNumber(inpTokenData.decimals, amount))
-  return instr
+  console.log("AMOUNT", fromReadableNumber(inpTokenData.decimals, amount))
+  const instr = compiledInst(fromReadableNumber(inpTokenData.decimals, amount));
+  return instr;
 }
 
 const floatToBN = (f: number) =>

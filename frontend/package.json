@@ -64,7 +64,7 @@
   },
   "dependencies": {
     "@malloc/ops": "../../malloc/malloc-near-2/ts-packages/malloc-ops",
-    "@malloc/sdk": "../../malloc/malloc-near-2/ts-packages/malloc-client/",
+    "@malloc/sdk": "../../malloc/malloc-near-2/ts-packages/malloc-client",
     "@smui/textfield": "^4.2.0",
     "serve": "^11.3.2"
   }
