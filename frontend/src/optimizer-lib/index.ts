@@ -24,12 +24,21 @@ export async function createMallocOps(
   recipient: string,
   optimizerFn: OptimizerFn
 ) {
-  console.log("The driected graph", JSON.stringify(G));
+  console.log("The directed graph", JSON.stringify(G));
   const optimizedRet = await findOptV2(G, tokens, amount, optimizerFn);
   console.log("Optimized return of", optimizedRet);
 
+  const toKeepIdx = optimizedRet.fractions
+    .map((_, i) => i)
+    .filter((i) => {
+      // The output is more than a percent of the total
+      return optimizedRet.fractions[i] > 0.001;
+    });
+
+  console.log("keeping the following indices", JSON.stringify(toKeepIdx));
+
   const MallocSwapTemplate = MOps.MallocCallAction({
-    mallocCallContractID: getConfig().refSwapContract,
+    mallocCallContractID: getConfig().refSwapActionContract,
     callArgNames: [
       "pool_ids",
       "token_outs",
@@ -46,7 +55,8 @@ export async function createMallocOps(
   });
 
   const mallocSwaps = [];
-  for (var i = 0; i < optimizedRet.fractions.length; i++) {
+  for (var x = 0; x < toKeepIdx.length; x++) {
+    const i = toKeepIdx[x];
     const tokensToRegister = [...optimizedRet.token_outs[i], tokenIn];
     mallocSwaps.push(
       MallocSwapTemplate({
@@ -58,7 +68,7 @@ export async function createMallocOps(
     );
   }
   const transfer = MOps.FtTransferCallToMallocCallAction({
-    mallocCallContractID: getConfig().refSwapContract,
+    mallocCallContractID: getConfig().refSwapActionContract,
     tokenIn,
   });
   let out: ActionOutputsForConstruction = [
@@ -67,7 +77,10 @@ export async function createMallocOps(
       next: mallocSwaps.map((swap, i) => {
         return {
           element: swap,
-          fraction: floatToBN(optimizedRet.fractions[i]),
+          fraction: floatToBN(
+            parseFloat(optimizedRet.fractions[i].toFixed(11)),
+            12
+          ),
         };
       }),
     },
@@ -86,10 +99,10 @@ export async function createMallocOps(
     ],
   });
   const inpTokenData = await ftGetTokenMetadata(account, tokenIn);
-  console.log("AMOUNT", fromReadableNumber(inpTokenData.decimals, amount))
+  console.log("AMOUNT", fromReadableNumber(inpTokenData.decimals, amount));
   const instr = compiledInst(fromReadableNumber(inpTokenData.decimals, amount));
-  return instr;
+  return { instr, expectedOut: optimizedRet.expected_out };
 }
 
-const floatToBN = (f: number) =>
-  new BN(f.toPrecision(12).replace(".", "")).toNumber();
+const floatToBN = (f: number, e = 12) =>
+  new BN(fromReadableNumber(e, f)).toNumber();

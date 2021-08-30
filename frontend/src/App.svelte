@@ -1,5 +1,15 @@
 <script lang="ts">
   import { connect, keyStores } from "@malloc/sdk/dist/near-rexport";
+  import Textfield from "@smui/textfield";
+  import Button, { Label } from "@smui/button";
+  import {
+    clearTradeInstr,
+    getSetInfo,
+    getTradeInstr,
+    storeSetInfo,
+    storeTradeInstr,
+  } from "./utils/db";
+
   import BN from "bn.js";
   import { stringify } from "postcss";
   import Login from "./components/Login.svelte";
@@ -12,14 +22,20 @@
   import {
     fromReadableNumber,
     ftGetTokenMetadata,
+    getTokenBal,
+    toReadableNumber,
   } from "./optimizer-lib/service/token";
+  import { AccountId, IRunEphemeralConstruction } from "@malloc/sdk";
+  import { DirectedGraph } from "./optimizer-lib/interfaces/graph-interfaces";
 
+  const PRECONSTRUCTION_DONE_FLAG = "preconstructiondone";
   let outputToken: string = "wrap.testnet";
   let inputToken: string = "rft.tokenfactory.testnet";
   let amount: string = null;
   let loading = false;
   let swapInfo;
   let optimizerFn: OptimizerFn;
+  let tradeInstr: IRunEphemeralConstruction;
 
   const nearConfig = getConfig("development");
 
@@ -41,30 +57,26 @@
     if (!$nearStore?.walletConnection.isSignedIn()) return false;
     const module = await import("../rust/pkg/index");
     optimizerFn = module.optimize;
+    if (window.location.href.includes(PRECONSTRUCTION_DONE_FLAG)) {
+      tradeInstr = getTradeInstr();
+    }
+    const setInfo = getSetInfo();
+    if (setInfo) {
+      inputToken = setInfo.tokenIn;
+      outputToken = setInfo.tokenOut;
+      amount = setInfo.amount;
+    }
     // Initializing Wallet based Account. It can work with NEAR testnet wallet that
     // is hosted at https://wallet.testnet.near.org
     return true;
   }
 
-  async function preConstruction() {
-    const pools = await getPoolsTouchingInOrOut(
-      $nearStore.account,
-      inputToken,
-      outputToken,
-      {
-        blacklist,
-      }
-    );
-    const { graph: G, tokens } = buildDirectedGraph(
-      pools,
-      inputToken,
-      outputToken
-    );
+  async function preConstruction(G: DirectedGraph, tokens: AccountId[]) {
     const {
       txs: registerAllToks,
     } = await $nearStore.mallocClient.registerAccountDeposits(
       tokens.filter((tok, i) => G.nodes[i].edges_out.length > 0),
-      [getConfig().refSwapContract]
+      [getConfig().refSwapActionContract]
     );
     // TODO: w/ malloc client what if account does not exist here?
     const {
@@ -81,7 +93,6 @@
       $nearStore.account,
       inputToken
     );
-    console.log(tokMetadata.decimals)
     // TODO: I think I have a bug in my ft balances...
     console.log(
       "DEPOSITING",
@@ -94,55 +105,108 @@
         account_id: $nearStore.account.accountId,
       }
     );
-    console.log("AAAA", bal);
     const { txs: depositTx } = await $nearStore.mallocClient.deposit(
       fromReadableNumber(tokMetadata.decimals, parseFloat(amount)),
       inputToken
     );
     const { txs: addAcccessKey } = await $nearStore.mallocClient.addAccessKey();
-    await $nearStore.mallocClient.executeMultipleTransaction([
-      ...registerAllToks,
-      ...registerMallocAndCurrentAccount,
-      ...depositTx,
-      ...addAcccessKey,
-    ]);
+    await $nearStore.mallocClient.executeMultipleTransaction(
+      [
+        ...registerAllToks,
+        ...registerMallocAndCurrentAccount,
+        ...depositTx,
+        ...addAcccessKey,
+      ],
+      {
+        callbackUrl: `${window.location.href}?${PRECONSTRUCTION_DONE_FLAG}=true`,
+      }
+    );
   }
 
-  async function createMallocOpsWrapper(e: Event) {
-    e.preventDefault();
+  async function buildTrade() {
     loading = true;
-    new Promise<void>(async (res, rej) => {
-      const pools = await getPoolsTouchingInOrOut(
+    clearTradeInstr();
+    const pools = await getPoolsTouchingInOrOut(
+      $nearStore.account,
+      inputToken,
+      outputToken,
+      {
+        blacklist,
+      }
+    );
+    const { graph: G, tokens } = buildDirectedGraph(
+      pools,
+      inputToken,
+      outputToken
+    );
+    const tokMetadata = await ftGetTokenMetadata(
+      $nearStore.account,
+      inputToken
+    );
+    const { instr, expectedOut } = await createMallocOps(
+      G,
+      tokens,
+      $nearStore.account,
+      inputToken,
+      outputToken,
+      parseFloat(amount),
+      $nearStore.account.accountId,
+      optimizerFn
+    );
+    const confirmRet = confirm(
+      `Expecting ${expectedOut} ${outputToken}. Is that ok?`
+    );
+    if (!confirmRet) {
+      loading = false;
+      return;
+    }
+    storeTradeInstr(instr);
+    storeSetInfo({
+      tokenIn: inputToken,
+      tokenOut: outputToken,
+      amount: amount,
+    });
+    await preConstruction(G, tokens);
+    loading = false;
+  }
+
+  async function executeTheTrade() {
+    loading = true;
+    try {
+      const metadata = await ftGetTokenMetadata(
         $nearStore.account,
-        inputToken,
-        outputToken,
-        {
-          blacklist,
-        }
-      );
-      const { graph: G, tokens } = buildDirectedGraph(
-        pools,
-        inputToken,
         outputToken
       );
-      const tokMetadata = await ftGetTokenMetadata(
-        $nearStore.account,
-        inputToken
-      );
-      const instr = await createMallocOps(
-        G,
-        tokens,
-        $nearStore.account,
-        inputToken,
+      const originalOutBal = await getTokenBal(
         outputToken,
-        parseFloat(amount),
         $nearStore.account.accountId,
-        optimizerFn
+        $nearStore.account
       );
-      await $nearStore.mallocClient.runEphemeralConstruction(instr);
+      await $nearStore.mallocClient.runEphemeralConstruction(tradeInstr);
+      const finalOutBal = await getTokenBal(
+        outputToken,
+        $nearStore.account.accountId,
+        $nearStore.account
+      );
+      alert(
+        `Successfully completed! Your balance of ${outputToken} is now ${toReadableNumber(
+          metadata.decimals,
+          finalOutBal.toString()
+        )}, and originally was ${toReadableNumber(
+          metadata.decimals,
+          originalOutBal.toString()
+        )}. You made a total of ${toReadableNumber(
+          metadata.decimals,
+          finalOutBal.sub(originalOutBal).toString()
+        )}`
+      );
+      clearTradeInstr();
       loading = false;
-      res();
-    });
+    } catch (e) {
+      alert(`An error occured: ${e.message || e}`);
+      loading = false;
+      throw e;
+    }
   }
 
   function logout() {
@@ -158,19 +222,44 @@
   {:then signedIn}
     {#if signedIn}
       <!-- TODO: navbar -->
-      <button class="log-out" on:click={logout}>Logout</button>
-      <form action="" on:submit={createMallocOpsWrapper}>
-        Input Token: <input type="text" bind:value={inputToken} /><br />
-        Output Token: <input type="text" bind:value={outputToken} /><br />
-        Amount: <input type="text" bind:value={amount} /><br />
-        <button type="sumbit">Submit</button>
+      <div class="topBar">
+        <Button variant="outlined" class="log-out" on:click={logout}
+          >Logout</Button
+        >
+      </div>
+      <div class="banner">
+        <h1>Let's Swap</h1>
+        <p>Use multiple liquidity pools to get the best output for a swap</p>
+      </div>
+      <form action="" on:submit={(e) => e.preventDefault()}>
+        <Textfield bind:value={inputToken} label="Input Token Account" />
+        <Textfield bind:value={outputToken} label="Output Token Account" />
+        <Textfield bind:value={amount} label="Amount of input token" />
+        <div class="execBtns">
+          <Button
+            variant="outlined"
+            on:click={() => {
+              clearTradeInstr();
+              window.location.reload();
+            }}
+            disabled={!tradeInstr || loading}>Clear built trade</Button
+          >
+          <Button
+            variant="raised"
+            on:click={() => buildTrade()}
+            disabled={tradeInstr || loading}
+            >Build the trade and deposit tokens</Button
+          >
+          <Button
+            variant="raised"
+            disabled={!tradeInstr || loading}
+            on:click={() => executeTheTrade()}>Execute the trade</Button
+          >
+        </div>
+        <!-- <button type="sumbit">Submit</button> -->
       </form>
-      <button on:click={preConstruction}
-        >Deposit and register with accounts</button
-      >
       {#if loading}
-        Loading... This may take a sec cause this code is very slow right now.
-        (Unoptimized optimization (; )
+        Loading...
       {/if}
       {#if swapInfo && !loading}
         <h1>Result</h1>
@@ -193,11 +282,26 @@
   (like make tokens out actions/ construction more obvious that order matters)
  -->
 <style>
+  .topBar {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: end;
+    padding-bottom: 2rem;
+  }
+
+  .execBtns {
+    padding: 1rem;
+    display: grid;
+    gap: 1rem;
+  }
+
   main {
     text-align: center;
     padding: 1em;
-    max-width: 240px;
     margin: 0 auto;
+    display: grid;
+    justify-content: center;
   }
 
   h1 {
@@ -205,6 +309,12 @@
     text-transform: uppercase;
     font-size: 4em;
     font-weight: 100;
+  }
+
+  form {
+    max-width: 400px;
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   @media (min-width: 640px) {

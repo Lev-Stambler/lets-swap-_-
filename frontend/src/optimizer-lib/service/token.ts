@@ -1,4 +1,5 @@
 import { AccountId } from "@malloc/sdk";
+import BN from "bn.js";
 import { Account } from "near-api-js";
 
 export interface TokenMetadata {
@@ -27,6 +28,17 @@ export const ftGetTokenMetadata = async (
       decimals: 6,
     };
   }
+};
+
+export const getTokenBal = async (
+  token_id: AccountId,
+  account: AccountId,
+  caller: Account
+): Promise<BN> => {
+  const bal = await caller.viewFunction(token_id, "ft_balance_of", {
+    account_id: account,
+  });
+  return new BN(bal);
 };
 // TODO: a swap exceeds prepaid gas, bump that ## up a bit pls
 // TODO: fix FT bug

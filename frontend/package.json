@@ -65,7 +65,12 @@
   "dependencies": {
     "@malloc/ops": "../../malloc/malloc-near-2/ts-packages/malloc-ops",
     "@malloc/sdk": "../../malloc/malloc-near-2/ts-packages/malloc-client",
+    "@smui/button": "^4.2.0",
     "@smui/textfield": "^4.2.0",
-    "serve": "^11.3.2"
-  }
+    "serve": "^11.3.2",
+    "sveltejs-forms": "^2.1.2"
+  },
+  "browserslist": [
+    "defaults"
+  ]
 }
