@@ -5,10 +5,9 @@ This project uses multiple liquidity pools to get optimal output for a token pai
 ### The details
 Let's Swap will be a DAG (directed acyclic graph) where each node represents a token and each edge represents a liquidity pool/ trade. The root node is the input token, and the last node in the dag is the output token. The algorithm then assigns "weights" to each edge. These weights correspond to what fraction of the input should go to each liquidity pool. Then, the algorithm uses optimization techniques and Web Assembly to find the optimal values for the weights such that the output amount is as high as possible.
 
-The following is an illustration of what the DAG looks like when swapping from token A to B:
-
-
 **Note** This is a novel algorithm for optimizing output
+
+The following is an illustration of what the DAG looks like when swapping from token A to B:
 
 Here is an example of the DAG that the algorithm build
 ![chart](https://user-images.githubusercontent.com/18239203/132230306-769267c7-7c03-4321-bc0a-6475d437ca36.png)
