@@ -230,6 +230,10 @@
       <div class="banner">
         <h1>Let's Swap</h1>
         <p>Use multiple liquidity pools to get the best output for a swap</p>
+        <p>
+          Note: this is currently using the following contract:
+          ref-finance.testnet
+        </p>
       </div>
       <form action="" on:submit={(e) => e.preventDefault()}>
         <Textfield bind:value={inputToken} label="Input Token Account" />
