@@ -272,6 +272,9 @@
     {:else}
       <Login />
     {/if}
+    <p>
+      Find us on <a href="https://github.com/Lev-Stambler/lets-swap-_-">Github</a>
+    </p>
   {:catch error}
     An error occured {JSON.stringify(error)}
     <!-- init() was rejected -->
