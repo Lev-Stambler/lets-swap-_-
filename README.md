@@ -11,7 +11,7 @@ The following is an illustration of what the DAG looks like when swapping from t
 **Note** This is a novel algorithm for optimizing output
 
 Here is an example of the DAG that the algorithm build
-![DAG EXAMPLE]("https://raw.githubusercontent.com/Lev-Stambler/lets-swap-_-/master/chart.png")
+![chart](https://user-images.githubusercontent.com/18239203/132230306-769267c7-7c03-4321-bc0a-6475d437ca36.png)
 
 
 ## Testnet
